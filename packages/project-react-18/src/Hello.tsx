@@ -1,8 +1,9 @@
 import React from 'react'
+import { greeting } from './content'
 
 function Hello() {
   return (
-    <div>Hello</div>
+    <div>{greeting}</div>
   )
 }
 
