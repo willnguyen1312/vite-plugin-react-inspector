@@ -1,9 +1,10 @@
 {
   "prettier.enable": false,
   "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": true
+    "source.fixAll.eslint": "explicit"
   },
-  "cSpell.words": [
-    "sudongyuer"
-  ]
+  "editor.defaultFormatter": "rvest.vs-code-prettier-eslint",
+  "[typescript]": {
+    "editor.defaultFormatter": "rvest.vs-code-prettier-eslint"
+  }
 }

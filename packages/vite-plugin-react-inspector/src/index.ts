@@ -1,6 +1,10 @@
 import type { Connect, Plugin } from 'vite'
 import { parseSync, traverse } from '@babel/core'
+import type { ParserConfig } from '@swc/core'
+import toBabel from 'swc-to-babel'
+import { parse } from '@swc/core'
 import MagicString from 'magic-string'
+import { compat, visit } from 'woodpile'
 import { queryParserMiddleware } from './middleware'
 import { parseFilePath, parseJSXIdentifier } from './utils'
 import { launchEditor } from './launch-editor'
@@ -16,11 +20,33 @@ function VitePluginReactInspector(): Plugin {
         },
       }
     },
-    transform: (code, id) => {
+    transform: async (code, id) => {
       const selfFileRegex = /vite-plugin-react-inspector\/src\/Toggle/
-      if ((id.endsWith('.tsx') || id.endsWith('.jsx')) && !selfFileRegex.test(id)) {
+      if (
+        (id.endsWith('.tsx') || id.endsWith('.jsx'))
+        && !selfFileRegex.test(id)
+      ) {
         const transformedCode = code
         const s = new MagicString(transformedCode)
+        const parser: ParserConfig | undefined = id.endsWith('.tsx')
+          ? { syntax: 'typescript', tsx: true, decorators: true }
+          : id.endsWith('.ts') || id.endsWith('.mts')
+            ? { syntax: 'typescript', tsx: false, decorators: true }
+            : id.endsWith('.jsx')
+              ? { syntax: 'ecmascript', jsx: true }
+              : id.endsWith('.mdx')
+                // eslint-disable-next-line operator-linebreak
+                ? // JSX is required to trigger fast refresh transformations, even if MDX already transforms it
+                  { syntax: 'ecmascript', jsx: true }
+                : undefined
+        if (!parser) return
+
+        // const ast = await parse(code, {
+        //   decorators: true,
+        //   tsx: true,
+        //   syntax: 'typescript',
+        // })
+
         const ast = parseSync(code, {
           configFile: false,
           filename: id,
@@ -31,6 +57,8 @@ function VitePluginReactInspector(): Plugin {
             '@babel/preset-typescript',
           ],
         })
+
+        // const babelAst = compat(ast) as any
         traverse(ast, {
           enter({ node }) {
             if (node.type === 'JSXElement') {
@@ -44,9 +72,12 @@ function VitePluginReactInspector(): Plugin {
               const toInsertPosition = start + parseJSXIdentifier(node.openingElement.name as any).length + 1
               const content = ` data-react-inspector="${id}:${line}:${column}"`
               s.appendLeft(toInsertPosition, content)
+
+              console.log('node', JSON.stringify(node, null, 2))
             }
           },
         })
+
         const sourceMap = s.generateMap({
           source: id,
           includeContent: true,
@@ -55,36 +86,6 @@ function VitePluginReactInspector(): Plugin {
           code: s.toString(),
           map: sourceMap,
         }
-      }
-    },
-    configureServer: (server) => {
-      type RequestMessage = Parameters<Connect.NextHandleFunction>[0]
-      server.middlewares.use(queryParserMiddleware)
-      server.middlewares.use((req: RequestMessage & { query?: object }, res, next) => {
-        // custom handle request...
-        if (req.url?.startsWith('/__react-inspector-launch-editor')) {
-          const { file } = req?.query as any
-          if (file) {
-            const [filePath, line, column] = parseFilePath(file)
-            launchEditor(filePath, Number(line), Number(column))
-          }
-        }
-        next()
-      })
-    },
-    transformIndexHtml(html) {
-      return {
-        html,
-        tags: [
-          {
-            tag: 'script',
-            injectTo: 'body',
-            attrs: {
-              type: 'module',
-              src: '/node_modules/vite-plugin-react-inspector/src/inject.jsx',
-            },
-          },
-        ],
       }
     },
   }

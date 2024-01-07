@@ -1,10 +1,8 @@
-import React from 'react'
-import { greeting } from './content'
+import React from "react";
+import { greeting } from "./content";
 
 function Hello() {
-  return (
-    <div>{greeting}</div>
-  )
+  return <div>{greeting}</div>;
 }
 
-export default Hello
+export default Hello;

@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@shopify/polaris": "^12.6.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
@@ -20,7 +21,7 @@
     "vite": "^5.0.11",
     "vite-plugin-hot-export": "^0.5.9",
     "vite-plugin-inspect": "^0.8.1",
-    "vite-plugin-react-inspector": "^0.3.3",
+    "vite-plugin-react-inspector": "workspace:*",
     "vite-plugin-svgr": "^4.2.0"
   }
 }
